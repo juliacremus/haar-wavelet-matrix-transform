@@ -7,3 +7,7 @@ Created on Mon Jul 10 20:50:05 2023
 
 @author: julia
 """
+
+# 1D implementation
+
+
