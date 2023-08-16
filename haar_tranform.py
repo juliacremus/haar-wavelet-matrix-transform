@@ -76,7 +76,9 @@ class HaarTransform:
         """
         
         # If N is not given by user, use self.N
-        N = self.N if N == 0 else math.ceil(N)
+        N = self.N if N == 0 else N
+        
+        N = int(N)
         
         # Start matrix to be completed with values
         haar_matrix = np.zeros(shape = (N, N))
@@ -102,10 +104,12 @@ class HaarTransform:
             j += 1
             
         # Set the inverse
-
-        # inv_haar_matrix = np.linalg.inv(haar_matrix)
         
-        return self.norm_factor * haar_matrix, 1
+        matrix_with_norm = self.norm_factor * haar_matrix
+        
+        inv_matrix = np.linalg.inv(matrix_with_norm)
+        
+        return matrix_with_norm, inv_matrix
     
       
     def run_foward_transform(self):
@@ -154,17 +158,25 @@ class HaarTransform:
         # Get T matrix
         haar_matrix, inv = self.build_haar_matrix(np.power(2, k))
         
+        
         # Complete upper right corner 
         partial_hn[
-            0:math.ceil(np.power(2, k)), 0:math.ceil(np.power(2, k))
+            0:int(np.power(2, k)), 0:int(np.power(2, k))
         ] = haar_matrix.copy()
         
         # Complete lower left corner
+        
+        print(self.N - np.power(2, k))
        
-        partial_hn[
-            -math.ceil(self.N - np.power(2, k))-1:-1,  
-            -math.ceil(self.N - np.power(2, k))-1:-1
-        ] = 1
+        if int(self.N - np.power(2, k)) != 0: 
+       
+            partial_hn[
+                int(self.N - np.square(k)):,  
+                int(self.N - np.square(k)):
+            ] = 1
+            
+        # print('H"')
+        # print(partial_hn)
         
         # fig, ax = plt.subplots()
         # plt.imshow(partial_hn, cmap='hot', interpolation='nearest')
@@ -174,36 +186,105 @@ class HaarTransform:
     
     
     def run_cascade_multiresolution_transform(self):
-        
+
+        # Loop to build producer H_N'
                
         # Define start and stop of loop
+        
+        
+        # loop from always will be bigger than loop_to
         
         loop_from = np.log2(self.N) + 1 - self.decomposition_level
         loop_to = np.log2(self.N) - 1
         
-        # Start temp variable for producer
-        temp_Hn = self.build_multi_resolution_matrix(loop_from)
-        
+        print(loop_from)
+        print(loop_to)
+
         i = loop_from
         
         while i <= loop_to:
-        
-            print(i)    
-        
-            partial_hn = self.build_multi_resolution_matrix(i)
             
-            temp_Hn = np.copy(np.dot(temp_Hn, partial_hn))
+            if i == loop_from:
+                producer_Hn = self.build_multi_resolution_matrix(i)
+             
+                print(partial_hn)   
+             
+            else:
+        
+                partial_hn = self.build_multi_resolution_matrix(i)
+                
+                print(partial_hn)
+            
+                producer_Hn = np.copy(np.dot(producer_Hn, partial_hn))
             
             i += 1
+        
+        # Run decomposition for this level
 
+        T_matrix, T_inv_matrix = self.build_haar_matrix(self.N)
+    
+        final_multi_matrix = np.dot(producer_Hn, T_matrix)
         
-        final_haar, a = self.build_haar_matrix(self.N)
+
+        #print(this_level_vec)
         
-        final_multi_matrix = np.dot(partial_hn, final_haar)
+        this_level_result = np.dot(
+            final_multi_matrix, 
+            self.input_vec.copy()
+            )
         
-        output = np.dot(final_multi_matrix, self.input_vec )
+            
+        return this_level_result
+    
+    def run_cascade_multiresolution_inv_transform(self):
         
-        return output 
+               
+        loop_from = np.log2(self.N) + 1 - self.decomposition_level
+        loop_to = np.log2(self.N) - 1
+        
+        print(loop_from)
+        print(loop_to)
+
+        i = loop_from
+        
+        
+        while i <= loop_to:
+            
+            if i == loop_from:
+                producer_Hn = self.build_multi_resolution_matrix(i)
+                
+            else:
+        
+                partial_hn = self.build_multi_resolution_matrix(i)
+                
+                print(partial_hn)
+            
+                producer_Hn = np.copy(np.dot(producer_Hn, partial_hn))
+            
+            i += 1
+        # Run decomposition for this level
+
+        T_matrix, T_inv_matrix = self.build_haar_matrix(self.N)
+    
+    
+        print(T_matrtrix)
+    
+        final_multi_matrix = np.dot(producer_Hn, T_matrix)
+
+        print(final_multi_matrix)
+
+        final_multi_matrix = np.linalg.inv(final_multi_matrix)        
+
+    
+        #print(this_level_vec)
+        
+        this_level_result = np.dot(
+            final_multi_matrix, 
+            self.input_vec.copy()
+            )
+        
+            
+        return this_level_result
     
 
     def build_packet_multi_resolution_matrix(self, k):
@@ -234,32 +315,77 @@ class HaarTransform:
         
         return 
     
-#%% Testes de script
 
 #%% parameters / inputs from user
 
-f = 1 
+f = 1 / 2
 
-N = 1024
+#f = 1 / np.sqrt(2)
 
-v = f * np.sin(5 * np.linspace(0, np.pi, N)) 
+N = 4
 
-v += np.random.rand(N)
+v = np.array([8, 4, 5, 4, 8, 4, 5, 4]) 
 
-levels = 4
+# v = np.array([
+# 5.25,
+# 5.25,
+# 0.75,
+# 0.75,
+# 5,
+# 5,
+# 5,
+# 5,
+
+# ])
+
+levels = 3
 
 haar = HaarTransform(v, levels, f)
 
-#%%
+#%% run transform
 
-# foward_transform_array = haar.run_foward_transform()
+# inverse_transform_array = haar.run_inverse_transform()
+
+
+#foward_transform_array = haar.run_foward_transform()
+
+
+
 multi_resolution = haar.run_cascade_multiresolution_transform()
 
 #%%
 
-fig, ax = plt.subplots()
+inv_multi = haar.run_cascade_multiresolution_inv_transform()
 
-ax.plot(v, label='original signal')
-ax.plot(multi_resolution, label='transformed signal', marker='o')
 
-ax.legend()
+# #%%
+
+# matrix, inv = haar.build_haar_matrix(N)
+
+# # #%%
+
+# # transform = np.dot(matrix, v)
+
+
+# #%%
+
+# x1 = np.arange(0, N, step = 1)
+# x2 = np.arange(0, N, step=2)
+
+
+# #%%
+
+# fig, ax = plt.subplots()
+
+# ax.plot(foward_transform_array)
+
+# # #%%
+# # ax.plot(x1, v, label='original signal')
+# # ax.plot(
+# #         x2,
+# #         foward_transform_array[:int(N/2)], 
+# #         label='transformed signal', 
+# #         marker='o'
+# #     )
+
+# # ax.legend()
