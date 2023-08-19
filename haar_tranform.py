@@ -166,22 +166,14 @@ class HaarTransform:
         
         # Complete lower left corner
         
-        print(self.N - np.power(2, k))
        
-        if int(self.N - np.power(2, k)) != 0: 
+        # if int(self.N - np.power(2, k)) != 0: 
        
-            partial_hn[
-                int(self.N - np.square(k)):,  
-                int(self.N - np.square(k)):
-            ] = 1
-            
-        # print('H"')
-        # print(partial_hn)
-        
-        # fig, ax = plt.subplots()
-        # plt.imshow(partial_hn, cmap='hot', interpolation='nearest')
-        # plt.show()
-                
+        partial_hn[
+            int(np.power(2, k)):,  
+            int(np.power(2, k)):
+        ] = 1
+                       
         return partial_hn
     
     
@@ -197,40 +189,39 @@ class HaarTransform:
         loop_from = np.log2(self.N) + 1 - self.decomposition_level
         loop_to = np.log2(self.N) - 1
         
-        print(loop_from)
-        print(loop_to)
-
-        i = loop_from
-        
-        while i <= loop_to:
+        if loop_to < loop_from:
             
-            if i == loop_from:
-                producer_Hn = self.build_multi_resolution_matrix(i)
-             
-                print(partial_hn)   
-             
-            else:
+            producer_Hn = np.identity(self.N)
         
-                partial_hn = self.build_multi_resolution_matrix(i)
+        else:
+            i = loop_from
+            
+            while i <= loop_to:
                 
-                print(partial_hn)
-            
-                producer_Hn = np.copy(np.dot(producer_Hn, partial_hn))
-            
-            i += 1
+                if i == loop_from:
+                    producer_Hn = self.build_multi_resolution_matrix(i)
+                 
+                else:
+                    partial_hn = self.build_multi_resolution_matrix(i)
+                    
+                    producer_Hn = np.dot(producer_Hn, partial_hn)
+                
+                i += 1
         
         # Run decomposition for this level
 
         T_matrix, T_inv_matrix = self.build_haar_matrix(self.N)
+        
+        print(T_matrix)
+        print(producer_Hn)
     
         final_multi_matrix = np.dot(producer_Hn, T_matrix)
         
+        print(final_multi_matrix)
 
-        #print(this_level_vec)
-        
         this_level_result = np.dot(
             final_multi_matrix, 
-            self.input_vec.copy()
+            self.input_vec
             )
         
             
@@ -267,7 +258,7 @@ class HaarTransform:
         T_matrix, T_inv_matrix = self.build_haar_matrix(self.N)
     
     
-        print(T_matrtrix)
+        # print(T_matrtrix)
     
         final_multi_matrix = np.dot(producer_Hn, T_matrix)
 
@@ -320,25 +311,16 @@ class HaarTransform:
 
 f = 1 / 2
 
-#f = 1 / np.sqrt(2)
+# f = 1 / np.sqrt(2)
 
 N = 4
 
-v = np.array([8, 4, 5, 4, 8, 4, 5, 4]) 
+v = np.array([8, 4, 5, 4]) 
 
-# v = np.array([
-# 5.25,
-# 5.25,
-# 0.75,
-# 0.75,
-# 5,
-# 5,
-# 5,
-# 5,
+# v = np.array([6, ])
 
-# ])
 
-levels = 3
+levels = 2
 
 haar = HaarTransform(v, levels, f)
 
@@ -347,8 +329,7 @@ haar = HaarTransform(v, levels, f)
 # inverse_transform_array = haar.run_inverse_transform()
 
 
-#foward_transform_array = haar.run_foward_transform()
-
+foward_transform_array = haar.run_foward_transform()
 
 
 multi_resolution = haar.run_cascade_multiresolution_transform()
@@ -375,7 +356,7 @@ inv_multi = haar.run_cascade_multiresolution_inv_transform()
 
 # #%%
 
-# fig, ax = plt.subplots()
+# fig, ax = plt.subplots(
 
 # ax.plot(foward_transform_array)
 
