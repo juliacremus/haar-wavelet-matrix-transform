@@ -154,14 +154,16 @@ class HaarTransform:
      
         # Initialize H_{N, 2k} 
         partial_hn = np.zeros(shape = (self.N, self.N))
+        
+        k_squared = int(np.power(2, k))
                
         # Get T matrix
-        haar_matrix, inv = self.build_haar_matrix(np.power(2, k))
+        haar_matrix, inv = self.build_haar_matrix(k_squared)
         
         
         # Complete upper right corner 
         partial_hn[
-            0:int(np.power(2, k)), 0:int(np.power(2, k))
+            0:k_squared, 0:k_squared
         ] = haar_matrix.copy()
         
         # Complete lower left corner
@@ -170,13 +172,14 @@ class HaarTransform:
         # if int(self.N - np.power(2, k)) != 0: 
        
         partial_hn[
-            int(np.power(2, k)):,  
-            int(np.power(2, k)):
-        ] = 1
+            k_squared:,  
+            k_squared:
+        ] = np.identity(k_squared)
+            
+        # print(partial_hn)
                        
         return partial_hn
-    
-    
+        
     def run_cascade_multiresolution_transform(self):
 
         # Loop to build producer H_N'
@@ -189,6 +192,7 @@ class HaarTransform:
         loop_from = np.log2(self.N) + 1 - self.decomposition_level
         loop_to = np.log2(self.N) - 1
         
+        print(loop_from, loop_to)
         if loop_to < loop_from:
             
             producer_Hn = np.identity(self.N)
@@ -204,7 +208,7 @@ class HaarTransform:
                 else:
                     partial_hn = self.build_multi_resolution_matrix(i)
                     
-                    producer_Hn = np.dot(producer_Hn, partial_hn)
+                    producer_Hn = np.matmul(producer_Hn, partial_hn)
                 
                 i += 1
         
@@ -212,14 +216,12 @@ class HaarTransform:
 
         T_matrix, T_inv_matrix = self.build_haar_matrix(self.N)
         
-        print(T_matrix)
-        print(producer_Hn)
     
-        final_multi_matrix = np.dot(producer_Hn, T_matrix)
+        final_multi_matrix = np.matmul(producer_Hn, T_matrix)
         
-        print(final_multi_matrix)
+        # print(final_multi_matrix)
 
-        this_level_result = np.dot(
+        this_level_result = np.matmul(
             final_multi_matrix, 
             self.input_vec
             )
@@ -229,53 +231,48 @@ class HaarTransform:
     
     def run_cascade_multiresolution_inv_transform(self):
         
-               
+    
+        # loop from always will be bigger than loop_to
+        
         loop_from = np.log2(self.N) + 1 - self.decomposition_level
         loop_to = np.log2(self.N) - 1
         
-        print(loop_from)
-        print(loop_to)
-
-        i = loop_from
-        
-        
-        while i <= loop_to:
+        print(loop_from, loop_to)
+        if loop_to < loop_from:
             
-            if i == loop_from:
-                producer_Hn = self.build_multi_resolution_matrix(i)
+            producer_Hn = np.identity(self.N)
+        
+        else:
+            i = loop_from
+            
+            while i <= loop_to:
                 
-            else:
-        
-                partial_hn = self.build_multi_resolution_matrix(i)
+                if i == loop_from:
+                    producer_Hn = self.build_multi_resolution_matrix(i)
+                 
+                else:
+                    partial_hn = self.build_multi_resolution_matrix(i)
+                    
+                    producer_Hn = np.matmul(producer_Hn, partial_hn)
                 
-                print(partial_hn)
-            
-                producer_Hn = np.copy(np.dot(producer_Hn, partial_hn))
-            
-            i += 1
+                i += 1
+        
         # Run decomposition for this level
 
         T_matrix, T_inv_matrix = self.build_haar_matrix(self.N)
-    
-    
-        # print(T_matrtrix)
-    
-        final_multi_matrix = np.dot(producer_Hn, T_matrix)
-
-        print(final_multi_matrix)
-
-        final_multi_matrix = np.linalg.inv(final_multi_matrix)        
-
-    
-        #print(this_level_vec)
         
-        this_level_result = np.dot(
+    
+        final_multi_matrix = np.linalg.inv(np.dot(producer_Hn, T_matrix))
+        
+        # print(final_multi_matrix)
+
+        this_level_result = np.matmul(
             final_multi_matrix, 
-            self.input_vec.copy()
+            self.input_vec
             )
-        
             
         return this_level_result
+        
     
 
     def build_packet_multi_resolution_matrix(self, k):
@@ -315,9 +312,7 @@ f = 1 / 2
 
 N = 4
 
-v = np.array([8, 4, 5, 4]) 
-
-# v = np.array([6, ])
+v = np.array([5.25, 0.75, 2, 0.5]) 
 
 
 levels = 2
