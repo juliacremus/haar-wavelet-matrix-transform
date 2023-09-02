@@ -174,7 +174,7 @@ class HaarTransform:
         partial_hn[
             k_squared:,  
             k_squared:
-        ] = np.identity(k_squared)
+        ] = np.identity((self.N - k_squared))
             
         # print(partial_hn)
                        
